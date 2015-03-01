@@ -1,0 +1,19 @@
+{
+  "uuid": "0bb53ee7-96ea-454f-8fdc-a9165b30ccea",
+  "shortName": "time_battery",
+  "longName": "time_battery",
+  "companyName": "MakeAwesomeHappen",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["aplite", "basalt"],
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
