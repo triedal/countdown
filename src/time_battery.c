@@ -22,7 +22,7 @@ static void hour_display_layer_update_callback(Layer *layer, GContext *ctx) {
     time_t temp = time(NULL);
     struct tm *tick_time = localtime(&temp);
     
-    unsigned int angle = (tick_time->tm_min) * 6;
+    unsigned int max_angle = (tick_time->tm_min) * 6;
     
     GRect bounds = layer_get_bounds(layer);
     GPoint center = grect_center_point(&bounds);
@@ -31,14 +31,12 @@ static void hour_display_layer_update_callback(Layer *layer, GContext *ctx) {
     graphics_fill_circle(ctx, center, 65);
     
     graphics_context_set_fill_color(ctx, GColorBlack);
-    for(; angle < 355; angle += 6) {
-        
-        gpath_rotate_to(hour_segment_path, (TRIG_MAX_ANGLE / 360) * angle);
-        
+
+    for (; max_angle > 0; max_angle -= 6) {
+        gpath_rotate_to(hour_segment_path, (TRIG_MAX_ANGLE / 360) * max_angle);
         gpath_draw_filled(ctx, hour_segment_path);
     }
     
-    //graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, center, 60);
 }
 
