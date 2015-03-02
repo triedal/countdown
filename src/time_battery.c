@@ -54,19 +54,20 @@ static void update_time() {
     struct tm *tick_time = localtime(&temp);
     
     // Create a long-lived buffer
-    static char hourText[] = "00:00";
+    static char timeText[] = "00:00";
     
     // Write the current hours and minutes into the buffer
     if(clock_is_24h_style() == true) {
         // Use 24 hour format
-        strftime(hourText, sizeof("00:00"), "%H:%M", tick_time);
+        strftime(timeText, sizeof("00:00"), "%H:%M", tick_time);
     } else {
         // Use 12 hour format
-        strftime(hourText, sizeof("0:00"), "%I:%M", tick_time);
+        strftime(timeText, sizeof("00:00"), "%I:%M", tick_time);
+        memmove(timeText, &timeText[1], sizeof(timeText) - 1);
     }
     
     // Display this time on the TextLayer
-    text_layer_set_text(timeLayer, hourText);
+    text_layer_set_text(timeLayer, timeText);
 }
 
 static void handle_minute_tick (struct tm *tick_time, TimeUnits units_changed) {
@@ -111,6 +112,7 @@ static void window_unload(Window *window) {
     text_layer_destroy(timeLayer);
     text_layer_destroy(batteryLayer);
     layer_destroy(hour_display_layer);
+    gpath_destroy(hour_segment_path);
 }
 
 static void init(void) {
