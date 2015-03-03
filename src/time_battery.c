@@ -4,25 +4,25 @@ static Window *window;
 static TextLayer *timeLayer;
 static TextLayer *batteryLayer;
 
-static Layer *hour_display_layer;
+static Layer *time_ring_display_layer;
 
-const GPathInfo HOUR_SEGMENT_PATH_POINTS = {
+const GPathInfo TIME_RING_SEGMENT_PATH_POINTS = {
     3,
     (GPoint []) {
         {0, 0},
-        {-7, -68}, // 68 = radius + fudge; 7 = 68*tan(6 degrees); 6 degrees per second;
-        {7,  -68},
+        {-18, -68}, // 68 = radius + fudge; 18 = 68*tan(15 degrees); 15 degrees per hour;
+        {18,  -68},
     }
 };
 
-static GPath *hour_segment_path;
+static GPath *time_ring_segment_path;
 
-static void hour_display_layer_update_callback(Layer *layer, GContext *ctx) {
+static void time_ring_display_layer_update_callback(Layer *layer, GContext *ctx) {
     // Get a tm structure
     time_t temp = time(NULL);
     struct tm *tick_time = localtime(&temp);
     
-    unsigned int max_angle = (tick_time->tm_min) * 6;
+    unsigned int max_angle = (tick_time->tm_hour) * 15;
     
     GRect bounds = layer_get_bounds(layer);
     GPoint center = grect_center_point(&bounds);
@@ -32,9 +32,9 @@ static void hour_display_layer_update_callback(Layer *layer, GContext *ctx) {
     
     graphics_context_set_fill_color(ctx, GColorBlack);
 
-    for (; max_angle > 0; max_angle -= 6) {
-        gpath_rotate_to(hour_segment_path, (TRIG_MAX_ANGLE / 360) * max_angle);
-        gpath_draw_filled(ctx, hour_segment_path);
+    for (; max_angle > 0; max_angle -= 15) {
+        gpath_rotate_to(time_ring_segment_path, (TRIG_MAX_ANGLE / 360) * max_angle);
+        gpath_draw_filled(ctx, time_ring_segment_path);
     }
     
     graphics_fill_circle(ctx, center, 60);
@@ -73,7 +73,7 @@ static void update_time() {
 static void handle_minute_tick (struct tm *tick_time, TimeUnits units_changed) {
     update_time();
     handle_battery(battery_state_service_peek());
-    layer_mark_dirty(hour_display_layer);
+    layer_mark_dirty(time_ring_display_layer);
 }
 
 static void window_load(Window *window) {
@@ -95,15 +95,15 @@ static void window_load(Window *window) {
     text_layer_set_text_alignment(batteryLayer, GTextAlignmentRight);
     
     // Init the time left segment path
-    hour_segment_path = gpath_create(&HOUR_SEGMENT_PATH_POINTS);
-    gpath_move_to(hour_segment_path, grect_center_point(&bounds));
+    time_ring_segment_path = gpath_create(&TIME_RING_SEGMENT_PATH_POINTS);
+    gpath_move_to(time_ring_segment_path, grect_center_point(&bounds));
     
     // Init layer for time left display
-    hour_display_layer = layer_create(bounds);
-    layer_set_update_proc(hour_display_layer, hour_display_layer_update_callback);
+    time_ring_display_layer = layer_create(bounds);
+    layer_set_update_proc(time_ring_display_layer, time_ring_display_layer_update_callback);
     
     // Add child layers to window layer
-    layer_add_child(window_layer, hour_display_layer);
+    layer_add_child(window_layer, time_ring_display_layer);
     layer_add_child(window_layer, text_layer_get_layer(timeLayer));
     layer_add_child(window_layer, text_layer_get_layer(batteryLayer));
 }
@@ -111,8 +111,8 @@ static void window_load(Window *window) {
 static void window_unload(Window *window) {
     text_layer_destroy(timeLayer);
     text_layer_destroy(batteryLayer);
-    layer_destroy(hour_display_layer);
-    gpath_destroy(hour_segment_path);
+    layer_destroy(time_ring_display_layer);
+    gpath_destroy(time_ring_segment_path);
 }
 
 static void init(void) {
