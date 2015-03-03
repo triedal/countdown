@@ -6,6 +6,9 @@ static TextLayer *batteryLayer;
 
 static Layer *time_ring_display_layer;
 
+// Try 10 minute increments
+// 68 = radius + fudge; 3 = 68*tan(2.5 degrees); 2.5 degrees per 10 minutes;
+
 const GPathInfo TIME_RING_SEGMENT_PATH_POINTS = {
     3,
     (GPoint []) {
@@ -55,18 +58,19 @@ static void update_time() {
     
     // Create a long-lived buffer
     static char timeText[] = "00:00";
-    
-    // Write the current hours and minutes into the buffer
-    if(clock_is_24h_style() == true) {
-        // Use 24 hour format
-        strftime(timeText, sizeof("00:00"), "%H:%M", tick_time);
+        
+    char *time_format;
+    if (clock_is_24h_style()) {
+        time_format = "%R";
     } else {
-        // Use 12 hour format
-        strftime(timeText, sizeof("00:00"), "%I:%M", tick_time);
+        time_format = "%I:%M";
+    }
+    strftime(timeText, sizeof(timeText), time_format, tick_time);
+    
+    // Handle lack of non-padded hour format string for twelve hour clock.
+    if (!clock_is_24h_style() && (timeText[0] == '0')) {
         memmove(timeText, &timeText[1], sizeof(timeText) - 1);
     }
-    
-    // Display this time on the TextLayer
     text_layer_set_text(timeLayer, timeText);
 }
 
