@@ -4,3 +4,5 @@ build
 .lock-waf*
 pebble-screenshot*
 .*.swp
+*.json
+wscript
