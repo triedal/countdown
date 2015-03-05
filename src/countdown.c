@@ -1,8 +1,11 @@
 #include <pebble.h>
 
+#define KEY_TEMPERATURE 0
+
 static Window *window;
 static TextLayer *timeLayer;
-static TextLayer *batteryLayer;
+//static TextLayer *batteryLayer;
+static TextLayer *weatherLayer;
 
 static Layer *time_ring_display_layer;
 
@@ -42,7 +45,7 @@ static void time_ring_display_layer_update_callback(Layer *layer, GContext *ctx)
     
     graphics_fill_circle(ctx, center, 60);
 }
-
+/*
 static void handle_battery(BatteryChargeState charge_state) {
     static char battery_text[] = "100%";
     
@@ -50,6 +53,7 @@ static void handle_battery(BatteryChargeState charge_state) {
     
     text_layer_set_text(batteryLayer, battery_text);
 }
+*/
 
 static void update_time() {
     // Get a tm structure
@@ -76,8 +80,62 @@ static void update_time() {
 
 static void handle_minute_tick (struct tm *tick_time, TimeUnits units_changed) {
     update_time();
-    handle_battery(battery_state_service_peek());
+    //handle_battery(battery_state_service_peek());
     layer_mark_dirty(time_ring_display_layer);
+    
+    // Get weather update every 30 minutes
+    if(tick_time->tm_min % 30 == 0) {
+        // Begin dictionary
+        DictionaryIterator *iter;
+        app_message_outbox_begin(&iter);
+        
+        // Add a key-value pair
+        dict_write_uint8(iter, 0, 0);
+        
+        // Send the message!
+        app_message_outbox_send();
+    }
+}
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+    // Store incoming information
+    static char temperature_buffer[8];
+    static char weather_layer_buffer[32];
+    
+    // Read first item
+    Tuple *t = dict_read_first(iterator);
+    
+    // For all items
+    while(t != NULL) {
+        // Which key was received?
+        switch(t->key) {
+            case KEY_TEMPERATURE:
+                snprintf(temperature_buffer, sizeof(temperature_buffer), "%d°", (int)t->value->int32);
+                break;
+            default:
+                APP_LOG(APP_LOG_LEVEL_ERROR, "Key %d not recognized!", (int)t->key);
+                break;
+        }
+        
+        // Look for next item
+        t = dict_read_next(iterator);
+    }
+    
+    // Assemble full string and display
+    snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s", temperature_buffer);
+    text_layer_set_text(weatherLayer, weather_layer_buffer);
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
 static void window_load(Window *window) {
@@ -91,12 +149,22 @@ static void window_load(Window *window) {
     text_layer_set_font(timeLayer, fonts_get_system_font(FONT_KEY_BITHAM_42_MEDIUM_NUMBERS));
     text_layer_set_text_alignment(timeLayer, GTextAlignmentCenter);
     
+    /*
     // Init layer for battery level display
     batteryLayer = text_layer_create(GRect(0, 0, bounds.size.w, 24));
     text_layer_set_background_color(batteryLayer, GColorClear);
     text_layer_set_text_color(batteryLayer, GColorClear);
     text_layer_set_font(batteryLayer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
     text_layer_set_text_alignment(batteryLayer, GTextAlignmentRight);
+    */
+    
+    // Init layer for weather display
+    weatherLayer = text_layer_create(GRect(0, 100, 144, 30));
+    text_layer_set_background_color(weatherLayer, GColorClear);
+    text_layer_set_text_color(weatherLayer, GColorClear);
+    text_layer_set_text_alignment(weatherLayer, GTextAlignmentCenter);
+    text_layer_set_font(weatherLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    text_layer_set_text(weatherLayer, "Loading...");
     
     // Init the time left segment path
     time_ring_segment_path = gpath_create(&TIME_RING_SEGMENT_PATH_POINTS);
@@ -109,12 +177,14 @@ static void window_load(Window *window) {
     // Add child layers to window layer
     layer_add_child(window_layer, time_ring_display_layer);
     layer_add_child(window_layer, text_layer_get_layer(timeLayer));
-    layer_add_child(window_layer, text_layer_get_layer(batteryLayer));
+    //layer_add_child(window_layer, text_layer_get_layer(batteryLayer));
+    layer_add_child(window_layer, text_layer_get_layer(weatherLayer));
 }
 
 static void window_unload(Window *window) {
     text_layer_destroy(timeLayer);
-    text_layer_destroy(batteryLayer);
+    //text_layer_destroy(batteryLayer);
+    text_layer_destroy(weatherLayer);
     layer_destroy(time_ring_display_layer);
     gpath_destroy(time_ring_segment_path);
 }
@@ -133,12 +203,21 @@ static void init(void) {
     update_time();
     
     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
-    battery_state_service_subscribe(handle_battery);
+    //battery_state_service_subscribe(handle_battery);
+    
+    // Register callbacks
+    app_message_register_inbox_received(inbox_received_callback);
+    app_message_register_inbox_dropped(inbox_dropped_callback);
+    app_message_register_outbox_failed(outbox_failed_callback);
+    app_message_register_outbox_sent(outbox_sent_callback);
+    
+    // Open AppMessage
+    app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
 static void deinit(void) {
     tick_timer_service_unsubscribe();
-    battery_state_service_unsubscribe();
+    //battery_state_service_unsubscribe();
     
     window_destroy(window);
 }

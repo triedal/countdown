@@ -1,19 +1,21 @@
 {
   "uuid": "0bb53ee7-96ea-454f-8fdc-a9165b30ccea",
-  "shortName": "time_battery",
-  "longName": "time_battery",
-  "companyName": "MakeAwesomeHappen",
+  "shortName": "Countdown",
+  "longName": "Countdown",
+  "companyName": "www.tylerried.al",
   "versionCode": 1,
   "versionLabel": "1.0",
-  "sdkVersion": "3",
-  "targetPlatforms": ["aplite", "basalt"],
+  "sdkVersion": "2",
   "watchapp": {
     "watchface": true
   },
   "appKeys": {
-    "dummy": 0
+    "KEY_TEMPERATURE": 0
   },
   "resources": {
     "media": []
-  }
+  },
+  "capabilities": [
+    "location"
+  ]
 }
