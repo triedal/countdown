@@ -164,7 +164,7 @@ static void window_load(Window *window) {
     text_layer_set_text_color(weatherLayer, GColorClear);
     text_layer_set_text_alignment(weatherLayer, GTextAlignmentCenter);
     text_layer_set_font(weatherLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-    text_layer_set_text(weatherLayer, "Loading...");
+    text_layer_set_text(weatherLayer, "");
     
     // Init the time left segment path
     time_ring_segment_path = gpath_create(&TIME_RING_SEGMENT_PATH_POINTS);
